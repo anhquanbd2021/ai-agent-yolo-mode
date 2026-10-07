@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Guide to the Approval Gate Lab — what the three policies prove and what the demo does not claim.">
+  <title>Approval Gate Lab Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&family=Inter:wght@400..800&family=JetBrains+Mono:wght@400..700&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+<!-- pb-shell --><link rel="stylesheet" href="./pb-shell.css"><!-- pb-shell --><!-- pb-back --><link rel="stylesheet" href="./pb-back.css"><!-- pb-back --></head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<main id="main">
+<nav aria-label="Primary"><a href="/">Lab</a><a aria-current="page" href="/guide.html">Guide</a><a href="https://github.com/anhquanbd2021/ai-agent-yolo-mode">Source</a></nav>
+<header>
+  <p class="eyebrow">Guide</p>
+  <h1>What the lab proves</h1>
+  <p class="lede">One scripted agent run — "fix the flaky login test and open a PR" — replayed under three permission models. Same actions, same order; only the gate changes.</p>
+  <p class="warning"><strong>Simulated, on purpose.</strong> The agent is a script and the operator is a rule (<code>expectedApprover</code> approves only what the task asked for). The point is the verdict pattern, not a real model's choices.</p>
+</header>
+<section class="panel">
+  <p class="eyebrow">Start here</p>
+  <h2>The three runs</h2>
+  <div class="control-grid">
+    <article class="panel control"><span class="control-number">Policy 1</span><h3>gated</h3><p><code>gate: "risky"</code> — every irreversible or external action pauses for a human. The operator approves the requested PR and denies the five freelanced actions. Result: 6 of 11 actions run, blast radius 5.</p></article>
+    <article class="panel control"><span class="control-number">Policy 2</span><h3>yolo</h3><p><code>gate: "never"</code>, no denylist, no caps. All eleven actions execute the moment the agent picks them: the force-push, the admin merge, the public comment, the release. Blast radius 44 — the worst case of this run.</p></article>
+    <article class="panel control"><span class="control-number">Policy 3</span><h3>railed</h3><p>No gate, but <code>deny</code> lists the four known-dangerous actions and a blast tripwire sits at 20. The listed four are blocked — and <code>rm -rf test/fixtures</code> still executes, because nobody wrote it down. Blast radius 13.</p></article>
+  </div>
+</section>
+<section class="guide-section">
+  <p class="eyebrow">Risk tiers</p>
+  <h2>Classify by blast radius, not by tool</h2>
+  <div class="control-grid">
+    <article class="panel control"><span class="control-number">read</span><h3>Observes only</h3><p>Nothing to undo. Never gated.</p></article>
+    <article class="panel control"><span class="control-number">reversible</span><h3>Local and undoable</h3><p>Edits, local commits — a diff away from clean. Flows through in every policy.</p></article>
+    <article class="panel control"><span class="control-number">irreversible</span><h3>Local destruction</h3><p><code>rm -rf</code> on data with no undo path. Gated — or denied outright.</p></article>
+    <article class="panel control"><span class="control-number">external</span><h3>Leaves the sandbox</h3><p>Pushes, merges, comments, publishes — visible to others, often unrevocable. The tier YOLO mode really changes.</p></article>
+  </div>
+</section>
+<section class="guide-section">
+  <p class="eyebrow">The trade</p>
+  <h2>Gate vs. denylist vs. tripwire</h2>
+  <div class="table-wrap panel">
+    <table>
+      <thead><tr><th>Control</th><th>Catches</th><th>Misses</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td>Human gate</td><td>Anything a person flags — including surprises</td><td>Nothing in scope; but humans rubber-stamp under fatigue</td><td>Latency + attention on every risky step</td></tr>
+        <tr><td>Denylist</td><td>Every action you enumerated — instantly, in any mode</td><td><code>rm -rf test/fixtures</code>: what nobody thought to list</td><td>Zero attention; near-zero latency</td></tr>
+        <tr><td>Tripwire (max blast/cost)</td><td>The spiral — halts the run when counters pass a line</td><td>A single big action under the line; damage up to the cap</td><td>None — it is a kill switch, not a reviewer</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="guide-section">
+  <p class="eyebrow">Architecture</p>
+  <h2>How the demo is built</h2>
+  <div class="table-wrap panel">
+    <table>
+      <thead><tr><th>Layer</th><th>Behavior</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Policy engine</td><td>Risk tiers, deny matching (id / risk / kind), cap checks, evaluation order deny &gt; cap &gt; gate &gt; allow.</td><td><code>public/policy.mjs</code></td></tr>
+        <tr><td>Runner</td><td>Replays the scenario, emits a verdict per action, tracks blast + cost, halts on tripwires. Deterministic.</td><td><code>public/runner.mjs</code></td></tr>
+        <tr><td>Scenario + policies</td><td>Eleven scripted actions and three policies — embedded constants kept in sync with <code>examples/*.json</code> by a test.</td><td><code>public/scenarios.mjs</code>, <code>examples/</code></td></tr>
+        <tr><td>Server</td><td>Zero-dependency static host plus /health and /version. No build step.</td><td><code>app/server.js</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="guide-section">
+  <p class="eyebrow">Run locally</p>
+  <h2>Inspect the evidence</h2>
+  <pre class="code-block">npm test        # policy engine + runner + examples sync + server
+npm run scan    # CLI: one run, three policies side by side
+npm run check   # both
+npm start       # serve the lab on :3000</pre>
+  <p>Edit a policy in <code>examples/</code> — add <code>"irreversible"</code> to the railed denylist and the fixture deletion joins the blocked list.</p>
+</section>
+<section class="guide-section panel">
+  <p class="eyebrow">Limits</p>
+  <h2>What this demo does not claim</h2>
+  <ul>
+    <li>The action stream is scripted — a real agent's actions are not predictable, which is exactly why the gate exists.</li>
+    <li>The simulated operator is a rule, not judgment. A tired human approves worse than <code>expectedApprover</code>.</li>
+    <li>Blast-radius and dollar numbers are illustrative units, not measurements.</li>
+    <li>A policy engine here is a teaching model; real enforcement lives in the agent harness, the forge's branch protection, and the credential's scopes.</li>
+  </ul>
+  <p><a class="try" href="/">Return to Lab</a></p>
+</section>
+</main>
+<!-- pb-shell --><a class="pb-shell" href="https://github.com/anhquanbd2021/ai-agent-yolo-mode" title="ai-agent-yolo-mode — an Article Playbook demo (view source)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="2" fill="#2dd4bf"/><rect x="13" y="2" width="9" height="9" rx="2" fill="#2dd4bf" opacity=".45"/><rect x="2" y="13" width="9" height="9" rx="2" fill="#2dd4bf" opacity=".45"/><rect x="13" y="13" width="9" height="9" rx="4.5" fill="#2dd4bf"/></svg><b>ai-agent-yolo-mode</b><i>DEMO</i></a><!-- pb-shell --><!-- pb-back --><a class="pb-back" id="pb-back" href="https://github.com/anhquanbd2021/ai-agent-yolo-mode" title="Back to the article — ai-agent-yolo-mode">← Article <i>PLAYBOOK</i></a><script>(function(){var a=document.getElementById('pb-back');if(!a)return;var h=location.hostname;if(/^(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(h)){a.href='//'+h+':'+(/^(localhost|127\.0\.0\.1)$/.test(h)?'1234':'30082')+'/microsites/article.html?slug=ai-agent-yolo-mode';}})();</script><!-- pb-back --></body>
+</html>

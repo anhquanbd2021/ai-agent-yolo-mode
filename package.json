@@ -1,0 +1,16 @@
+{
+  "name": "ai-agent-yolo-mode-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Approval Gate Lab — replay one scripted agent run under gated, yolo, and railed policies and watch what removing the approval gate changes.",
+  "scripts": {
+    "start": "node app/server.js",
+    "scan": "node scripts/report.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "check": "npm test && npm run scan"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

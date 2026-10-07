@@ -1,0 +1,8 @@
+{
+  "name": "railed",
+  "gate": "never",
+  "deny": ["merge-pr", "force-push", "post-comment", "publish"],
+  "maxBlast": 20,
+  "maxCost": null,
+  "note": "Autonomy with guardrails: no gate, but a denylist of the four known-dangerous actions plus a blast-radius tripwire. Still misses what nobody listed."
+}

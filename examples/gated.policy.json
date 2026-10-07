@@ -1,0 +1,8 @@
+{
+  "name": "gated",
+  "gate": "risky",
+  "deny": [],
+  "maxBlast": null,
+  "maxCost": null,
+  "note": "Every irreversible or external action waits for a human. Slow, but judgment covers what nobody thought to write down."
+}

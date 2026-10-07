@@ -1,0 +1,8 @@
+{
+  "name": "yolo",
+  "gate": "never",
+  "deny": [],
+  "maxBlast": null,
+  "maxCost": null,
+  "note": "No gate, no denylist, no caps. Every action executes the moment the agent chooses it."
+}
